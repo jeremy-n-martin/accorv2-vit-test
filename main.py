@@ -35,7 +35,14 @@ class FurnitureDataset(Dataset):  # Classe qui hérite de torch.utils.data.Datas
 # Transformation pour préparer les images
 transform = transforms.Compose([  # Compose une série de transformations
     transforms.Resize((224, 224)),  # Redimensionner l'image à 224x224 pixels
-    transforms.ToTensor()  # Convertir l'image en un tenseur (pour PyTorch)
+    transforms.ToTensor(),  # Convertir l'image en un tenseur (pour PyTorch)
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normaliser les valeurs des pixels
+])
+
+# Transformation inverse pour annuler la normalisation
+inverse_transform = transforms.Compose([
+    transforms.Normalize(mean=[-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225], std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
+    transforms.ToPILImage()
 ])
 
 # Charger le dataset
@@ -52,9 +59,11 @@ def extract_features(dataloader):  # Fonction pour extraire les caractéristique
     model.eval()  # Mettre le modèle en mode évaluation (désactive le dropout, etc.)
     feature_list = []  # Liste pour stocker les caractéristiques des images
     label_list = []  # Liste pour stocker les étiquettes des images
-    with torch.no_grad():  # Désactiver la calcul des gradients (inutile en mode évaluation)
+    with torch.no_grad():  # Désactiver le calcul des gradients (inutile en mode évaluation)
         for images, labels in dataloader:  # Itérer sur le DataLoader
-            inputs = feature_extractor(images=[img.numpy() for img in images], return_tensors="pt")  # Extraire les caractéristiques des images et les convertir en tenseurs
+            # Annuler la normalisation pour le ViTImageProcessor
+            original_images = [inverse_transform(img) for img in images]
+            inputs = feature_extractor(images=original_images, return_tensors="pt")  # Extraire les caractéristiques des images et les convertir en tenseurs
             outputs = model(**inputs)  # Passer les images dans le modèle pour obtenir les sorties
             features = outputs.last_hidden_state.mean(dim=1).cpu().numpy()  # Calculer les caractéristiques moyennes pour chaque image
             feature_list.append(features)  # Ajouter les caractéristiques à la liste
@@ -72,7 +81,10 @@ print("Caractéristiques extraites et sauvegardées.")  # Afficher un message in
 # Fonction pour reconnaître un meuble dans une nouvelle image
 def recognize_furniture(img_path, features, labels, model, feature_extractor):  # Fonction pour reconnaître un meuble dans une image donnée
     image = Image.open(img_path).convert("RGB")  # Ouvrir la nouvelle image et la convertir en RGB
-    inputs = feature_extractor(images=[np.array(image)], return_tensors="pt")  # Extraire les caractéristiques de l'image
+    image = transform(image).unsqueeze(0)  # Appliquer les transformations et ajouter une dimension supplémentaire
+    # Annuler la normalisation pour le ViTImageProcessor
+    original_image = inverse_transform(image.squeeze())
+    inputs = feature_extractor(images=[original_image], return_tensors="pt")  # Extraire les caractéristiques de l'image
     with torch.no_grad():  # Désactiver le calcul des gradients
         outputs = model(**inputs)  # Passer l'image dans le modèle pour obtenir les sorties
     new_features = outputs.last_hidden_state.mean(dim=1).cpu().numpy()  # Calculer les caractéristiques moyennes de la nouvelle image

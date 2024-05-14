@@ -21,7 +21,8 @@ Vision Transformer For Furniture Recognition
 - Install pillow
 ``pip install pillow``
 
-
+- Execute script
+``python main.py``
 
 
 # Explication du code
