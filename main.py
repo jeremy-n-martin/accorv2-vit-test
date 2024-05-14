@@ -38,8 +38,7 @@ class FurnitureDataset(Dataset):
 # Transformation pour préparer les images
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    # Ne pas normaliser ici pour éviter les problèmes avec ViTImageProcessor
+    transforms.ToTensor()
 ])
 
 # Charger le dataset
@@ -48,7 +47,7 @@ dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
 # Charger le modèle ViT pré-entraîné
 model_name = "google/vit-base-patch16-224-in21k"
-feature_extractor = ViTImageProcessor.from_pretrained(model_name)
+feature_extractor = ViTImageProcessor.from_pretrained(model_name, do_rescale=False)
 model = ViTModel.from_pretrained(model_name)
 
 # Fonction pour extraire les caractéristiques des images
@@ -92,6 +91,9 @@ def recognize_furniture(img_path, features, labels, model, feature_extractor, tr
 # Charger les caractéristiques et labels sauvegardés
 features = np.load("features.npy")
 labels = np.load("labels.npy")
+
+# Vérification des étiquettes des classes
+print(f"Classes trouvées dans le dataset : {dataset.classes}")
 
 # Reconnaître un meuble dans une nouvelle image
 test_image_path = "D:\\dev\\vitac\\datatest\\test (1).jpg"
