@@ -1,6 +1,5 @@
-# vitac
+# VIsion Transformer for ACcor r&d
 Vision Transformer For Furniture Recognition
-
 
 ## Install conda navigator
 

@@ -4,7 +4,7 @@ from PIL import Image  # Module pour ouvrir et manipuler des images
 import torch  # Bibliothèque pour le calcul scientifique et les réseaux de neurones
 from torchvision import transforms  # Module pour les transformations d'images
 from torch.utils.data import Dataset, DataLoader  # Modules pour créer et gérer des ensembles de données
-from transformers import ViTFeatureExtractor, ViTModel  # Classes pour le modèle ViT (Vision Transformer) et son extracteur de caractéristiques
+from transformers import ViTImageProcessor, ViTModel  # Classes pour le modèle ViT (Vision Transformer) et son extracteur de caractéristiques
 import numpy as np  # Bibliothèque pour les opérations mathématiques sur les tableaux
 
 # Définir le chemin de ton dataset
@@ -44,7 +44,7 @@ dataloader = DataLoader(dataset, batch_size=32, shuffle=True)  # Créer un DataL
 
 # Charger le modèle ViT pré-entraîné
 model_name = "google/vit-base-patch16-224-in21k"  # Nom du modèle ViT pré-entraîné
-feature_extractor = ViTFeatureExtractor.from_pretrained(model_name)  # Charger l'extracteur de caractéristiques pré-entraîné
+feature_extractor = ViTImageProcessor.from_pretrained(model_name, do_rescale=False)  # Charger l'extracteur de caractéristiques pré-entraîné sans rescaler les images
 model = ViTModel.from_pretrained(model_name)  # Charger le modèle ViT pré-entraîné
 
 # Fonction pour extraire les caractéristiques des images
@@ -54,12 +54,12 @@ def extract_features(dataloader):  # Fonction pour extraire les caractéristique
     label_list = []  # Liste pour stocker les étiquettes des images
     with torch.no_grad():  # Désactiver la calcul des gradients (inutile en mode évaluation)
         for images, labels in dataloader:  # Itérer sur le DataLoader
-            inputs = feature_extractor(images=images, return_tensors="pt")  # Extraire les caractéristiques des images et les convertir en tenseurs
+            inputs = feature_extractor(images=[img.numpy() for img in images], return_tensors="pt")  # Extraire les caractéristiques des images et les convertir en tenseurs
             outputs = model(**inputs)  # Passer les images dans le modèle pour obtenir les sorties
-            features = outputs.last_hidden_state.mean(dim=1).squeeze().numpy()  # Calculer les caractéristiques moyennes pour chaque image
+            features = outputs.last_hidden_state.mean(dim=1).cpu().numpy()  # Calculer les caractéristiques moyennes pour chaque image
             feature_list.append(features)  # Ajouter les caractéristiques à la liste
-            label_list.append(labels.numpy())  # Ajouter les étiquettes à la liste
-    return np.concatenate(feature_list), np.concatenate(label_list)  # Concaténer les listes de caractéristiques et d'étiquettes
+            label_list.extend(labels.cpu().numpy())  # Ajouter les étiquettes à la liste
+    return np.concatenate(feature_list, axis=0), np.array(label_list)  # Concaténer les listes de caractéristiques et d'étiquettes
 
 features, labels = extract_features(dataloader)  # Extraire les caractéristiques et les étiquettes des images dans le DataLoader
 
@@ -72,21 +72,27 @@ print("Caractéristiques extraites et sauvegardées.")  # Afficher un message in
 # Fonction pour reconnaître un meuble dans une nouvelle image
 def recognize_furniture(img_path, features, labels, model, feature_extractor):  # Fonction pour reconnaître un meuble dans une image donnée
     image = Image.open(img_path).convert("RGB")  # Ouvrir la nouvelle image et la convertir en RGB
-    inputs = feature_extractor(images=image, return_tensors="pt")  # Extraire les caractéristiques de l'image
+    inputs = feature_extractor(images=[np.array(image)], return_tensors="pt")  # Extraire les caractéristiques de l'image
     with torch.no_grad():  # Désactiver le calcul des gradients
         outputs = model(**inputs)  # Passer l'image dans le modèle pour obtenir les sorties
-    new_features = outputs.last_hidden_state.mean(dim=1).squeeze().numpy()  # Calculer les caractéristiques moyennes de la nouvelle image
+    new_features = outputs.last_hidden_state.mean(dim=1).cpu().numpy()  # Calculer les caractéristiques moyennes de la nouvelle image
     
     # Calculer les similarités entre les nouvelles caractéristiques et celles des images du dataset
-    similarities = np.dot(features, new_features) / (np.linalg.norm(features, axis=1) * np.linalg.norm(new_features))
+    similarities = np.dot(features, new_features.T) / (np.linalg.norm(features, axis=1)[:, None] * np.linalg.norm(new_features))
     most_similar_index = np.argmax(similarities)  # Trouver l'index de l'image la plus similaire
-    return most_similar_index, similarities[most_similar_index]  # Retourner l'index et la similarité de l'image la plus similaire
+    most_similar_similarity = similarities[most_similar_index].item()  # Extraire la similarité correspondante et la convertir en valeur scalaire
+    return most_similar_index, most_similar_similarity  # Retourner l'index et la similarité de l'image la plus similaire
 
 # Charger les caractéristiques et labels sauvegardés
 features = np.load("features.npy")  # Charger les caractéristiques depuis le fichier .npy
 labels = np.load("labels.npy")  # Charger les étiquettes depuis le fichier .npy
 
 # Reconnaître un meuble dans une nouvelle image
-test_image_path = "D:\\dev\\vitac\\datatest\\chaise (1).jpg"  # Chemin de l'image de test
+test_image_path = "D:\\dev\\vitac\\datatest\\test (1).jpg"  # Chemin de l'image de test
 index, similarity = recognize_furniture(test_image_path, features, labels, model, feature_extractor)  # Reconnaître le meuble dans l'image de test
-print(f"Le meuble reconnu est de la catégorie : {dataset.classes[labels[index]]} avec une similarité de {similarity:.2f}")  # Afficher la catégorie du meuble reconnu et la similarité
+print(f"Le meuble 1 reconnu est de la catégorie : {dataset.classes[labels[index]]} avec une similarité de {similarity:.2f}")  # Afficher la catégorie du meuble reconnu et la similarité
+
+# Reconnaître un meuble dans une nouvelle image
+test_image_path = "D:\\dev\\vitac\\datatest\\test (2).jpg"  # Chemin de l'image de test
+index, similarity = recognize_furniture(test_image_path, features, labels, model, feature_extractor)  # Reconnaître le meuble dans l'image de test
+print(f"Le meuble 2 reconnu est de la catégorie : {dataset.classes[labels[index]]} avec une similarité de {similarity:.2f}")  # Afficher la catégorie du meuble reconnu et la similarité
