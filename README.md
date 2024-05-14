@@ -1,5 +1,5 @@
-# VIsion Transformer for ACcor r&d
-Vision Transformer For Furniture Recognition
+# Vision Transformer for Furniture Recognition
+Vision Transformer For Furniture Recognition, for R&D and the Accor Hotel project. Currently the model used is `google/vit-base-patch16-224-in21k`
 
 ## Install conda navigator
 
