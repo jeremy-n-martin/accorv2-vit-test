@@ -1,43 +1,78 @@
 # Vision Transformer for Furniture Recognition
-Vision Transformer For Furniture Recognition, for R&D and the Accor Hotel project. Currently the model used is `google/vit-base-patch16-224-in21k`
 
-## Install conda navigator
+## Introduction
+Ce projet utilise un modèle Vision Transformer (ViT) pour la reconnaissance de meubles, développé dans le cadre d'un projet de R&D pour Accor Hotels. Le modèle utilisé est `google/vit-base-patch16-224-in21k`, pré-entraîné sur ImageNet.
 
-## Install environment
+## Prérequis
 
-- Install Anaconda
+### Installation de Conda Navigator
 
-- Create a python 3.11.9 env
+### Création de l'environnement
 
-- Install pytorch w/ cuda
-``conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch``
+1. **Installer Anaconda** : Téléchargez et installez Anaconda à partir du [site officiel](https://www.anaconda.com/products/distribution).
 
-- Install mkl
-``conda install mkl=2021.4.0``
+2. **Créer un environnement Python 3.11.9** :
+    ```sh
+    conda create -n furniture-recognition python=3.11.9
+    conda activate furniture-recognition
+    ```
 
-- Install transformers
-``pip install transformers``
+3. **Installer PyTorch avec CUDA** :
+    ```sh
+    conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+    ```
 
-- Install pillow
-``pip install pillow``
+4. **Installer MKL** :
+    ```sh
+    conda install mkl=2021.4.0
+    ```
 
-- Execute script
-``python main.py``
+5. **Installer Transformers** :
+    ```sh
+    pip install transformers
+    ```
 
+6. **Installer Pillow** :
+    ```sh
+    pip install pillow
+    ```
 
-# Explication du code
+7. **Exécuter le script** :
+    ```sh
+    python main.py
+    ```
 
-## Chargement du Modèle ViT Pré-entraîné :
-Nous utilisons le modèle ViTBase de Google pré-entraîné sur ImageNet.
-ViTFeatureExtractor est utilisé pour préparer les images pour le modèle.
+## Explication du Code
 
-## Extraction des Caractéristiques :
-La fonction get_feature_vector charge une image, la passe à travers le modèle ViT et extrait un vecteur de caractéristiques.
-Le vecteur de caractéristiques est obtenu en prenant la moyenne des caractéristiques de la dernière couche cachée du modèle.
+### Technologies Utilisées
+- **Python** : Langage de programmation principal.
+- **PyTorch** : Bibliothèque pour le calcul scientifique et les réseaux de neurones profonds.
+- **Transformers** : Bibliothèque pour les modèles de traitement du langage naturel et de vision par ordinateur.
+- **Pillow** : Bibliothèque pour le traitement d'images.
 
-## Construction de la Base de Données de Caractéristiques :
-Pour chaque image dans list_of_image_paths, nous calculons le vecteur de caractéristiques et l'ajoutons à un dictionnaire database.
+### Fonctionnalités Principales
 
-## Recherche de Produits Similaires :
-La fonction find_similar_products calcule le vecteur de caractéristiques de l'image de test et compare ce vecteur avec ceux de la base de données en utilisant la similarité cosinus.
-Elle retourne les chemins des images les plus similaires.
+#### Chargement du Modèle ViT Pré-entraîné
+Nous utilisons le modèle ViTBase de Google, pré-entraîné sur ImageNet. `ViTImageProcessor` est utilisé pour préparer les images pour le modèle. Ce modèle de Vision Transformer est capable de traiter des images comme des séquences, similaires aux tokens dans les modèles de traitement du langage naturel.
+
+#### Extraction des Caractéristiques
+La fonction `extract_features` charge les images, les passe à travers le modèle ViT et extrait des vecteurs de caractéristiques. Le vecteur de caractéristiques est obtenu en prenant la moyenne des caractéristiques de la dernière couche cachée du modèle. Cette étape est cruciale pour transformer les images en une représentation numérique que le modèle peut comprendre.
+
+#### Construction de la Base de Données de Caractéristiques
+Pour chaque image dans le dataset, nous calculons le vecteur de caractéristiques et l'ajoutons à une base de données. Cette base de données est ensuite utilisée pour comparer et reconnaître de nouvelles images.
+
+#### Recherche de Produits Similaires
+La fonction `recognize_furniture` calcule le vecteur de caractéristiques de l'image de test et compare ce vecteur avec ceux de la base de données en utilisant la similarité cosinus. Cette mesure de similarité permet de trouver les images les plus similaires dans la base de données, facilitant ainsi la reconnaissance précise des meubles.
+
+### Exécution du Projet
+1. Assurez-vous que toutes les bibliothèques nécessaires sont installées.
+2. Placez vos images de chaises dans `dataset/chairs` et vos images de tables dans `dataset/tables`.
+3. Exécutez le script `main.py` :
+    ```sh
+    python main.py
+    ```
+
+Le script chargera les images, extraira les caractéristiques, construira la base de données de caractéristiques et reconnaîtra les meubles dans les images de test en affichant les catégories et les similarités.
+
+## Auteurs
+Ce projet a été développé dans le cadre d'un projet de R&D pour Accor Hotels.
